@@ -1,13 +1,13 @@
 -- 1 --
-Call useCall('0901111111','0904444444','2023-01-09 10:10:10',3900);
-Call useCall('0904444444','0901111111','2023-01-10 10:10:10',4680);
-Call useCall('0901111111','0953333333','2023-02-09 10:10:10',1200);
-Call useCall('0901111111','0955555555','2023-02-12 10:10:10',3000);
-Call useCall('0955555555','0944444444','2023-02-15 10:10:10',1920);
-Call useCall('0942222222','0942222222','2023-02-18 10:10:10',3180);
-Call useCall('0953333333','0955555555','2023-02-22 10:10:10',2700);
-Call useCall('0955555555','0953333333','2023-02-26 10:10:10',2700);
-Call useCall('0942222222','0901111111','2023-02-27 10:10:10',2700);
+Call useCall('0901111111','0904444444','2023-01-09 10:10:10',65);
+Call useCall('0904444444','0901111111','2023-01-10 10:10:10',78);
+Call useCall('0901111111','0953333333','2023-02-09 10:10:10',20);
+Call useCall('0901111111','0955555555','2023-02-12 10:10:10',50);
+Call useCall('0955555555','0944444444','2023-02-15 10:10:10',32);
+Call useCall('0942222222','0942222222','2023-02-18 10:10:10',53);
+Call useCall('0953333333','0955555555','2023-02-22 10:10:10',45);
+Call useCall('0955555555','0953333333','2023-02-26 10:10:10',45);
+Call useCall('0942222222','0901111111','2023-02-27 10:10:10',45);
 
 -- 2 --
 Call useNET('2023-01-12 09:09:09','0942222222',615);
@@ -31,16 +31,17 @@ BEGIN
 	SET pacNo = (SELECT packageId FROM registPackage rp
 										INNER JOIN registNumber rn ON rp.registNumberId = rn.registNumberId
                                     	INNER JOIN phoneNumber pn ON rn.phoneNo = pn.phoneNo
-                                      	WHERE pn.phoneNo = phoneNoCheck AND LAST_DAY(checkDate) = rp.endDate);
+                                      	WHERE pn.phoneNo = phoneNoCheck AND LAST_DAY(checkDate) = LAST_DAY(rp.startDate)
+										LIMIT 1);
 RETURN pacNo;
 END //
 DELIMITER ;
 
 -- 4 --
 SET @dateCheck = '2023-01-01';
-SELECT phoneNo, getPackage(dateCheck,phoneNo) as packNo 
-FROM phonenumber
-WHERE 
+SELECT phoneNo, getPackage(@dateCheck,phoneNo) as packNo 
+FROM phoneNumber
+WHERE getPackage(@dateCheck,phoneNo) IS NOT NULL;
 
 -- 5 --
 DROP FUNCTION IF EXISTS totalCall;
@@ -61,13 +62,11 @@ DELIMITER ;
 -- 6 --
 SET @dateCheck = '2023-01-01';
 SELECT phoneNo, totalCall(@dateCheck, phoneNo) as total 
-FROM phoneNumber 
+FROM phoneNumber; 
 
 SET @dateCheck = '2023-02-01';
 SELECT phoneNo, totalCall(@dateCheck, phoneNo) as total 
-FROM phoneNumber 
-
-
+FROM phoneNumber; 
 
 -- 7 --
 DROP FUNCTION IF EXISTS totalNet;
@@ -89,11 +88,11 @@ DELIMITER ;
 -- 8 --
 SET @dateCheck = '2023-01-01'; 
 SELECT phoneNo, totalNet(@dateCheck, phoneNo) as total  
-FROM phoneNumber 
+FROM phoneNumber; 
 
 SET @dateCheck = '2023-02-01'; 
 SELECT phoneNo, totalNet(@dateCheck, phoneNo) as total  
-FROM phoneNumber 
+FROM phoneNumber; 
 
 -- 9 --
 DROP FUNCTION IF EXISTS calCost;
@@ -151,3 +150,12 @@ END //
 DELIMITER ;
 
 -- 10 --
+SET @dateCheck = '2023-01-01'; 
+SELECT pn.phoneNo,
+	name AS packageName,
+    price AS normalPackagePrice,
+    totalCall(@dateCheck,phoneNo) AS totalCall,
+    totalNet(@dateCheck,phoneNo) AS totalNet,
+    calCost(@dateCheck,phoneNo) AS dueAmount
+FROM phoneNumber pn
+	JOIN package ON package.packageId = getPackage(@dateCheck,phoneNO);
